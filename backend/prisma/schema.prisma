@@ -1,0 +1,1043 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../node_modules/.prisma/client"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["app"]
+}
+
+model User {
+  id                                                                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                                                                       String                       @unique
+  passwordHash                                                                String                       @map("password_hash")
+  fullName                                                                    String                       @map("full_name")
+  preferredCurrency                                                           String                       @default("CAD") @map("preferred_currency") @db.VarChar(3)
+  locale                                                                      String                       @default("en-CA")
+  timezone                                                                    String                       @default("America/Toronto")
+  status                                                                      user_status                  @default(active)
+  createdAt                                                                   DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                                                                   DateTime                     @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt                                                                   DateTime?                    @map("deleted_at") @db.Timestamptz(6)
+  assets                                                                      assets[]
+  auth_sessions                                                               auth_sessions[]
+  budget_assignment_events_budget_assignment_events_created_by_user_idTousers budget_assignment_events[]   @relation("budget_assignment_events_created_by_user_idTousers")
+  budget_assignment_events_budget_assignment_events_user_idTousers            budget_assignment_events[]   @relation("budget_assignment_events_user_idTousers")
+  budget_months                                                               budget_months[]
+  budgets                                                                     Budget?
+  categories                                                                  categories[]
+  category_groups                                                             category_groups[]
+  category_months                                                             category_months[]
+  category_targets                                                            category_targets[]
+  connections                                                                 connections[]
+  credit_card_statements                                                      credit_card_statements[]
+  financial_accounts                                                          financial_accounts[]
+  goal_contributions                                                          goal_contributions[]
+  goals                                                                       goals[]
+  institutions                                                                institutions[]
+  liabilities                                                                 liabilities[]
+  merchants                                                                   merchants[]
+  monthly_account_snapshots                                                   monthly_account_snapshots[]
+  monthly_category_snapshots                                                  monthly_category_snapshots[]
+  net_worth_snapshots                                                         net_worth_snapshots[]
+  recurring_rules                                                             recurring_rules[]
+  tags                                                                        tags[]
+  transaction_splits                                                          transaction_splits[]
+  transaction_tags                                                            transaction_tags[]
+  transactions                                                                transactions[]
+  transfer_links                                                              transfer_links[]
+  user_preferences                                                            user_preferences?
+
+  @@map("users")
+  @@schema("app")
+}
+
+model Budget {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                   String                     @unique(map: "uq_budgets_user_default", where: raw("((is_default = true) AND (deleted_at IS NULL))")) @map("user_id") @db.Uuid
+  name                     String
+  currency                 String                     @default("CAD") @map("currency") @db.VarChar(3)
+  isDefault                Boolean                    @default(false) @map("is_default")
+  status                   budget_status              @default(active)
+  createdAt                DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime                   @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt                DateTime?                  @map("deleted_at") @db.Timestamptz(6)
+  budget_assignment_events budget_assignment_events[]
+  budget_months            budget_months[]
+  user                     User                       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  categories               categories[]
+  category_groups          category_groups[]
+  transactions             transactions[]
+
+  @@index([userId, status], map: "idx_budgets_user_status")
+  @@map("budgets")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model assets {
+  id                      String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String     @db.Uuid
+  name                    String
+  type                    asset_type
+  institution_name        String?
+  currency                String     @default("CAD") @db.VarChar(3)
+  quantity                Decimal?   @db.Decimal(18, 8)
+  unit_cost_minor         BigInt?
+  acquisition_value_minor BigInt?
+  current_value_minor     BigInt
+  valuation_date          DateTime?  @db.Date
+  include_in_net_worth    Boolean    @default(true)
+  is_manual               Boolean    @default(true)
+  notes                   String?
+  metadata                Json       @default("{}")
+  created_at              DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime   @default(now()) @db.Timestamptz(6)
+  deleted_at              DateTime?  @db.Timestamptz(6)
+  users                   User       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, type], map: "idx_assets_user_type")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model auth_sessions {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String         @db.Uuid
+  token_hash   String         @unique
+  status       session_status @default(active)
+  ip_address   String?        @db.Inet
+  user_agent   String?
+  expires_at   DateTime       @db.Timestamptz(6)
+  last_seen_at DateTime?      @db.Timestamptz(6)
+  created_at   DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime       @default(now()) @db.Timestamptz(6)
+  revoked_at   DateTime?      @db.Timestamptz(6)
+  users        User           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at], map: "idx_auth_sessions_expires_at")
+  @@index([user_id, status], map: "idx_auth_sessions_user_status")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model budget_assignment_events {
+  id                                                                 String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                                                            String                       @db.Uuid
+  budget_id                                                          String                       @db.Uuid
+  budget_month_id                                                    String                       @db.Uuid
+  category_id                                                        String                       @db.Uuid
+  source_category_id                                                 String?                      @db.Uuid
+  event_type                                                         budget_assignment_event_type
+  amount_minor                                                       BigInt
+  notes                                                              String?
+  created_by_user_id                                                 String                       @db.Uuid
+  created_at                                                         DateTime                     @default(now()) @db.Timestamptz(6)
+  budgets                                                            Budget                       @relation(fields: [budget_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  budget_months                                                      budget_months                @relation(fields: [budget_month_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  categories_budget_assignment_events_category_idTocategories        categories                   @relation("budget_assignment_events_category_idTocategories", fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_budget_assignment_events_created_by_user_idTousers           User                         @relation("budget_assignment_events_created_by_user_idTousers", fields: [created_by_user_id], references: [id], onUpdate: NoAction)
+  categories_budget_assignment_events_source_category_idTocategories categories?                  @relation("budget_assignment_events_source_category_idTocategories", fields: [source_category_id], references: [id], onUpdate: NoAction)
+  users_budget_assignment_events_user_idTousers                      User                         @relation("budget_assignment_events_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, budget_month_id, created_at], map: "idx_budget_assignment_events_user_month_created")
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model budget_months {
+  id                           String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                      String                     @db.Uuid
+  budget_id                    String                     @db.Uuid
+  month_key                    String                     @db.Char(7)
+  month_start                  DateTime                   @db.Date
+  month_end                    DateTime                   @db.Date
+  ready_to_assign_minor        BigInt                     @default(0)
+  total_assigned_minor         BigInt                     @default(0)
+  total_activity_minor         BigInt                     @default(0)
+  total_available_minor        BigInt                     @default(0)
+  leftover_from_previous_minor BigInt                     @default(0)
+  created_at                   DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at                   DateTime                   @default(now()) @db.Timestamptz(6)
+  budget_assignment_events     budget_assignment_events[]
+  budgets                      Budget                     @relation(fields: [budget_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                        User                       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category_months              category_months[]
+
+  @@unique([budget_id, month_key])
+  @@index([user_id, month_key], map: "idx_budget_months_user_month")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model categories {
+  id                                                                               String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                                                                          String                       @db.Uuid
+  budget_id                                                                        String                       @db.Uuid
+  category_group_id                                                                String                       @db.Uuid
+  parent_category_id                                                               String?                      @db.Uuid
+  kind                                                                             category_kind                @default(expense)
+  name                                                                             String
+  slug                                                                             String?
+  description                                                                      String?
+  sort_order                                                                       Int                          @default(0)
+  is_system                                                                        Boolean                      @default(false)
+  is_active                                                                        Boolean                      @default(true)
+  color                                                                            String?
+  icon                                                                             String?
+  goal_hint_type                                                                   String?
+  metadata                                                                         Json                         @default("{}")
+  created_at                                                                       DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at                                                                       DateTime                     @default(now()) @db.Timestamptz(6)
+  deleted_at                                                                       DateTime?                    @db.Timestamptz(6)
+  budget_assignment_events_budget_assignment_events_category_idTocategories        budget_assignment_events[]   @relation("budget_assignment_events_category_idTocategories")
+  budget_assignment_events_budget_assignment_events_source_category_idTocategories budget_assignment_events[]   @relation("budget_assignment_events_source_category_idTocategories")
+  budgets                                                                          Budget                       @relation(fields: [budget_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category_groups                                                                  category_groups              @relation(fields: [category_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  categories                                                                       categories?                  @relation("categoriesTocategories", fields: [parent_category_id], references: [id], onUpdate: NoAction)
+  other_categories                                                                 categories[]                 @relation("categoriesTocategories")
+  users                                                                            User                         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category_months                                                                  category_months[]
+  category_targets                                                                 category_targets[]
+  goals                                                                            goals[]
+  monthly_category_snapshots                                                       monthly_category_snapshots[]
+  recurring_rules                                                                  recurring_rules[]
+  transaction_splits                                                               transaction_splits[]
+  transactions                                                                     transactions[]
+  user_preferences_user_preferences_default_expense_category_idTocategories        user_preferences[]           @relation("user_preferences_default_expense_category_idTocategories")
+  user_preferences_user_preferences_default_income_category_idTocategories         user_preferences[]           @relation("user_preferences_default_income_category_idTocategories")
+
+  @@unique([budget_id, category_group_id, name])
+  @@index([user_id, category_group_id, sort_order], map: "idx_categories_user_group_sort")
+  @@index([user_id, kind, is_active], map: "idx_categories_user_kind_active")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model category_groups {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String       @db.Uuid
+  budget_id   String       @db.Uuid
+  name        String
+  description String?
+  sort_order  Int          @default(0)
+  is_system   Boolean      @default(false)
+  is_active   Boolean      @default(true)
+  color       String?
+  icon        String?
+  metadata    Json         @default("{}")
+  created_at  DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime     @default(now()) @db.Timestamptz(6)
+  deleted_at  DateTime?    @db.Timestamptz(6)
+  categories  categories[]
+  budgets     Budget       @relation(fields: [budget_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       User         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([budget_id, name])
+  @@index([user_id, budget_id, sort_order], map: "idx_category_groups_user_budget_sort")
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model category_months {
+  id                            String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                       String                 @db.Uuid
+  budget_month_id               String                 @db.Uuid
+  category_id                   String                 @db.Uuid
+  assigned_minor                BigInt                 @default(0)
+  activity_minor                BigInt                 @default(0)
+  available_minor               BigInt                 @default(0)
+  carryover_from_previous_minor BigInt                 @default(0)
+  underfunded_minor             BigInt                 @default(0)
+  target_status                 category_target_status @default(none)
+  is_snoozed                    Boolean                @default(false)
+  notes                         String?
+  metadata                      Json                   @default("{}")
+  created_at                    DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime               @default(now()) @db.Timestamptz(6)
+  budget_months                 budget_months          @relation(fields: [budget_month_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  categories                    categories             @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                         User                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([budget_month_id, category_id])
+  @@index([user_id, budget_month_id, category_id], map: "idx_category_months_user_budget_month_category")
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model category_targets {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String               @db.Uuid
+  category_id          String               @db.Uuid
+  target_type          category_target_type
+  target_amount_minor  BigInt?
+  monthly_amount_minor BigInt?
+  target_date          DateTime?            @db.Date
+  repeat_interval      Int?
+  due_day              Int?
+  start_month_key      String?              @db.Char(7)
+  end_month_key        String?              @db.Char(7)
+  is_active            Boolean              @default(true)
+  notes                String?
+  metadata             Json                 @default("{}")
+  created_at           DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime             @default(now()) @db.Timestamptz(6)
+  categories           categories           @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                User                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, category_id], map: "idx_category_targets_user_category")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model connections {
+  id                      String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String               @db.Uuid
+  institution_id          String?              @db.Uuid
+  provider                sync_provider
+  provider_connection_ref String?
+  status                  connection_status    @default(active)
+  display_name            String?
+  last_successful_sync_at DateTime?            @db.Timestamptz(6)
+  last_attempt_at         DateTime?            @db.Timestamptz(6)
+  error_code              String?
+  error_message           String?
+  metadata                Json                 @default("{}")
+  created_at              DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime             @default(now()) @db.Timestamptz(6)
+  deleted_at              DateTime?            @db.Timestamptz(6)
+  institutions            institutions?        @relation(fields: [institution_id], references: [id], onUpdate: NoAction)
+  users                   User                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  financial_accounts      financial_accounts[]
+
+  @@unique([provider, provider_connection_ref])
+  @@index([user_id, provider, status], map: "idx_connections_user_provider_status")
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model credit_card_statements {
+  id                      String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String             @db.Uuid
+  account_id              String             @db.Uuid
+  reference_year          Int
+  reference_month         Int
+  label                   String?
+  period_start            DateTime           @db.Date
+  period_end              DateTime           @db.Date
+  closing_date            DateTime           @db.Date
+  due_date                DateTime           @db.Date
+  opening_balance_minor   BigInt             @default(0)
+  purchases_total_minor   BigInt             @default(0)
+  payments_total_minor    BigInt             @default(0)
+  adjustments_total_minor BigInt             @default(0)
+  interest_total_minor    BigInt             @default(0)
+  fees_total_minor        BigInt             @default(0)
+  closing_balance_minor   BigInt             @default(0)
+  minimum_due_minor       BigInt?
+  is_closed               Boolean            @default(false)
+  is_paid                 Boolean            @default(false)
+  paid_at                 DateTime?          @db.Timestamptz(6)
+  notes                   String?
+  metadata                Json               @default("{}")
+  created_at              DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime           @default(now()) @db.Timestamptz(6)
+  deleted_at              DateTime?          @db.Timestamptz(6)
+  financial_accounts      financial_accounts @relation(fields: [account_id], references: [id], onUpdate: NoAction)
+  users                   User               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transactions            transactions[]
+
+  @@unique([account_id, reference_year, reference_month])
+  @@index([user_id, account_id, due_date], map: "idx_credit_card_statements_user_account_due")
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model financial_accounts {
+  id                                                                       String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                                                                  String                      @db.Uuid
+  institution_id                                                           String?                     @db.Uuid
+  connection_id                                                            String?                     @db.Uuid
+  external_ref                                                             String?
+  name                                                                     String
+  display_name                                                             String?
+  kind                                                                     account_kind
+  ownership_type                                                           account_ownership_type      @default(personal)
+  status                                                                   account_status              @default(active)
+  currency                                                                 String                      @default("CAD") @db.VarChar(3)
+  opening_balance_minor                                                    BigInt                      @default(0)
+  current_balance_minor                                                    BigInt                      @default(0)
+  available_balance_minor                                                  BigInt?
+  credit_limit_minor                                                       BigInt?
+  minimum_payment_minor                                                    BigInt?
+  statement_closing_day                                                    Int?
+  statement_due_day                                                        Int?
+  account_number_masked                                                    String?
+  last_four                                                                String?                     @db.VarChar(4)
+  color                                                                    String?
+  icon                                                                     String?
+  include_in_net_worth                                                     Boolean                     @default(true)
+  include_in_cash_flow                                                     Boolean                     @default(true)
+  is_manual                                                                Boolean                     @default(true)
+  is_visible                                                               Boolean                     @default(true)
+  is_on_budget                                                             Boolean                     @default(true)
+  metadata                                                                 Json                        @default("{}")
+  notes                                                                    String?
+  created_at                                                               DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_at                                                               DateTime                    @default(now()) @db.Timestamptz(6)
+  deleted_at                                                               DateTime?                   @db.Timestamptz(6)
+  credit_card_statements                                                   credit_card_statements[]
+  connections                                                              connections?                @relation(fields: [connection_id], references: [id], onUpdate: NoAction)
+  institutions                                                             institutions?               @relation(fields: [institution_id], references: [id], onUpdate: NoAction)
+  users                                                                    User                        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  goal_contributions                                                       goal_contributions[]
+  goals                                                                    goals[]
+  monthly_account_snapshots                                                monthly_account_snapshots[]
+  recurring_rules                                                          recurring_rules[]
+  transactions                                                             transactions[]
+  transfer_links_transfer_links_destination_account_idTofinancial_accounts transfer_links[]            @relation("transfer_links_destination_account_idTofinancial_accounts")
+  transfer_links_transfer_links_source_account_idTofinancial_accounts      transfer_links[]            @relation("transfer_links_source_account_idTofinancial_accounts")
+  user_preferences                                                         user_preferences[]
+
+  @@unique([connection_id, external_ref])
+  @@index([connection_id], map: "idx_financial_accounts_connection")
+  @@index([institution_id], map: "idx_financial_accounts_institution")
+  @@index([user_id, kind, status], map: "idx_financial_accounts_user_kind_status")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model goal_contributions {
+  id                 String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String                   @db.Uuid
+  goal_id            String                   @db.Uuid
+  account_id         String?                  @db.Uuid
+  transaction_id     String?                  @db.Uuid
+  amount_minor       BigInt
+  contribution_date  DateTime                 @db.Date
+  source             goal_contribution_source @default(manual)
+  notes              String?
+  metadata           Json                     @default("{}")
+  created_at         DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime                 @default(now()) @db.Timestamptz(6)
+  financial_accounts financial_accounts?      @relation(fields: [account_id], references: [id], onUpdate: NoAction)
+  goals              goals                    @relation(fields: [goal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transactions       transactions?            @relation(fields: [transaction_id], references: [id], onUpdate: NoAction)
+  users              User                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, goal_id, contribution_date], map: "idx_goal_contributions_user_goal_date")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model goals {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String               @db.Uuid
+  name                 String
+  description          String?
+  type                 goal_type
+  status               goal_status          @default(active)
+  currency             String               @default("CAD") @db.VarChar(3)
+  target_amount_minor  BigInt
+  current_amount_minor BigInt               @default(0)
+  target_date          DateTime?            @db.Date
+  started_at           DateTime?            @db.Date
+  completed_at         DateTime?            @db.Date
+  priority             Int                  @default(0)
+  linked_account_id    String?              @db.Uuid
+  linked_category_id   String?              @db.Uuid
+  auto_allocate        Boolean              @default(false)
+  notes                String?
+  metadata             Json                 @default("{}")
+  created_at           DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime             @default(now()) @db.Timestamptz(6)
+  deleted_at           DateTime?            @db.Timestamptz(6)
+  goal_contributions   goal_contributions[]
+  financial_accounts   financial_accounts?  @relation(fields: [linked_account_id], references: [id], onUpdate: NoAction)
+  categories           categories?          @relation(fields: [linked_category_id], references: [id], onUpdate: NoAction)
+  users                User                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, status, type], map: "idx_goals_user_status_type")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model institutions {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String               @db.Uuid
+  provider           sync_provider        @default(manual)
+  provider_ref       String?
+  name               String
+  logo_url           String?
+  country_code       String?              @db.VarChar(2)
+  primary_color      String?
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime             @default(now()) @db.Timestamptz(6)
+  deleted_at         DateTime?            @db.Timestamptz(6)
+  connections        connections[]
+  financial_accounts financial_accounts[]
+  users              User                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, provider, provider_ref])
+  @@index([user_id, name], map: "idx_institutions_user_name")
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model liabilities {
+  id                    String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String         @db.Uuid
+  name                  String
+  type                  liability_type
+  institution_name      String?
+  currency              String         @default("CAD") @db.VarChar(3)
+  original_amount_minor BigInt?
+  current_balance_minor BigInt
+  interest_rate_annual  Decimal?       @db.Decimal(10, 4)
+  minimum_payment_minor BigInt?
+  due_day               Int?
+  maturity_date         DateTime?      @db.Date
+  include_in_net_worth  Boolean        @default(true)
+  is_manual             Boolean        @default(true)
+  notes                 String?
+  metadata              Json           @default("{}")
+  created_at            DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime       @default(now()) @db.Timestamptz(6)
+  deleted_at            DateTime?      @db.Timestamptz(6)
+  users                 User           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, type], map: "idx_liabilities_user_type")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model merchants {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String            @db.Uuid
+  name            String
+  normalized_name String?
+  website         String?
+  logo_url        String?
+  metadata        Json              @default("{}")
+  notes           String?
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime          @default(now()) @db.Timestamptz(6)
+  deleted_at      DateTime?         @db.Timestamptz(6)
+  users           User              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recurring_rules recurring_rules[]
+  transactions    transactions[]
+
+  @@unique([user_id, name])
+  @@index([user_id, name], map: "idx_merchants_user_name")
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model monthly_account_snapshots {
+  id                    String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String             @db.Uuid
+  account_id            String             @db.Uuid
+  month_key             String             @db.Char(7)
+  opening_balance_minor BigInt             @default(0)
+  closing_balance_minor BigInt             @default(0)
+  inflows_minor         BigInt             @default(0)
+  outflows_minor        BigInt             @default(0)
+  created_at            DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime           @default(now()) @db.Timestamptz(6)
+  financial_accounts    financial_accounts @relation(fields: [account_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 User               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([account_id, month_key])
+  @@index([user_id, month_key], map: "idx_monthly_account_snapshots_user_month")
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model monthly_category_snapshots {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String     @db.Uuid
+  category_id     String     @db.Uuid
+  month_key       String     @db.Char(7)
+  assigned_minor  BigInt     @default(0)
+  activity_minor  BigInt     @default(0)
+  available_minor BigInt     @default(0)
+  created_at      DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime   @default(now()) @db.Timestamptz(6)
+  categories      categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           User       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([category_id, month_key])
+  @@index([user_id, month_key], map: "idx_monthly_category_snapshots_user_month")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model net_worth_snapshots {
+  id                      String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String          @db.Uuid
+  snapshot_date           DateTime        @db.Date
+  total_assets_minor      BigInt
+  total_liabilities_minor BigInt
+  net_worth_minor         BigInt
+  currency                String          @default("CAD") @db.VarChar(3)
+  source                  snapshot_source @default(system)
+  metadata                Json            @default("{}")
+  created_at              DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime        @default(now()) @db.Timestamptz(6)
+  users                   User            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, snapshot_date])
+  @@index([user_id, snapshot_date], map: "idx_net_worth_snapshots_user_date")
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model recurring_rules {
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String                @db.Uuid
+  account_id           String?               @db.Uuid
+  category_id          String?               @db.Uuid
+  merchant_id          String?               @db.Uuid
+  name                 String
+  description_template String?
+  type                 transaction_type
+  status               recurring_rule_status @default(active)
+  frequency            recurrence_frequency
+  interval             Int                   @default(1)
+  amount_minor         BigInt
+  currency             String                @default("CAD") @db.VarChar(3)
+  starts_at            DateTime              @db.Timestamptz(6)
+  ends_at              DateTime?             @db.Timestamptz(6)
+  next_run_at          DateTime?             @db.Timestamptz(6)
+  last_run_at          DateTime?             @db.Timestamptz(6)
+  day_of_month         Int?
+  day_of_week          Int?
+  month_of_year        Int?
+  auto_create          Boolean               @default(true)
+  auto_post            Boolean               @default(false)
+  create_days_ahead    Int                   @default(0)
+  notes                String?
+  metadata             Json                  @default("{}")
+  created_at           DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime              @default(now()) @db.Timestamptz(6)
+  deleted_at           DateTime?             @db.Timestamptz(6)
+  financial_accounts   financial_accounts?   @relation(fields: [account_id], references: [id], onUpdate: NoAction)
+  categories           categories?           @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  merchants            merchants?            @relation(fields: [merchant_id], references: [id], onUpdate: NoAction)
+  users                User                  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transactions         transactions[]
+
+  @@index([user_id, status, next_run_at], map: "idx_recurring_rules_user_status_next_run")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tags {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String             @db.Uuid
+  name             String
+  color            String?
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime           @default(now()) @db.Timestamptz(6)
+  deleted_at       DateTime?          @db.Timestamptz(6)
+  users            User               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transaction_tags transaction_tags[]
+
+  @@unique([user_id, name])
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model transaction_splits {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String       @db.Uuid
+  transaction_id String       @db.Uuid
+  category_id    String?      @db.Uuid
+  amount_minor   BigInt
+  description    String?
+  sort_order     Int          @default(0)
+  metadata       Json         @default("{}")
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime     @default(now()) @db.Timestamptz(6)
+  categories     categories?  @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  transactions   transactions @relation(fields: [transaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          User         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, transaction_id, sort_order], map: "idx_transaction_splits_user_transaction_sort")
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model transaction_tags {
+  user_id        String       @db.Uuid
+  transaction_id String       @db.Uuid
+  tag_id         String       @db.Uuid
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  tags           tags         @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transactions   transactions @relation(fields: [transaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          User         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([transaction_id, tag_id])
+  @@schema("app")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model transactions {
+  id                                                                     String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                                                                String                  @db.Uuid
+  budget_id                                                              String?                 @db.Uuid
+  account_id                                                             String                  @db.Uuid
+  category_id                                                            String?                 @db.Uuid
+  merchant_id                                                            String?                 @db.Uuid
+  statement_id                                                           String?                 @db.Uuid
+  recurring_rule_id                                                      String?                 @db.Uuid
+  parent_transaction_id                                                  String?                 @db.Uuid
+  group_key                                                              String?
+  type                                                                   transaction_type
+  status                                                                 transaction_status      @default(posted)
+  source                                                                 transaction_source      @default(manual)
+  description                                                            String
+  notes                                                                  String?
+  currency                                                               String                  @default("CAD") @db.VarChar(3)
+  amount_minor                                                           BigInt
+  original_amount_minor                                                  BigInt?
+  exchange_rate                                                          Decimal?                @db.Decimal(18, 8)
+  transaction_date                                                       DateTime                @db.Date
+  posted_at                                                              DateTime?               @db.Timestamptz(6)
+  competency_date                                                        DateTime?               @db.Date
+  due_date                                                               DateTime?               @db.Date
+  installment_number                                                     Int?
+  installment_count                                                      Int?
+  is_credit_card_charge                                                  Boolean                 @default(false)
+  is_cleared                                                             Boolean                 @default(true)
+  is_hidden                                                              Boolean                 @default(false)
+  external_ref                                                           String?
+  checksum                                                               String?
+  metadata                                                               Json                    @default("{}")
+  created_at                                                             DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at                                                             DateTime                @default(now()) @db.Timestamptz(6)
+  deleted_at                                                             DateTime?               @db.Timestamptz(6)
+  goal_contributions                                                     goal_contributions[]
+  transaction_splits                                                     transaction_splits[]
+  transaction_tags                                                       transaction_tags[]
+  financial_accounts                                                     financial_accounts      @relation(fields: [account_id], references: [id], onUpdate: NoAction)
+  budgets                                                                Budget?                 @relation(fields: [budget_id], references: [id], onUpdate: NoAction)
+  categories                                                             categories?             @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  merchants                                                              merchants?              @relation(fields: [merchant_id], references: [id], onUpdate: NoAction)
+  transactions                                                           transactions?           @relation("transactionsTotransactions", fields: [parent_transaction_id], references: [id], onUpdate: NoAction)
+  other_transactions                                                     transactions[]          @relation("transactionsTotransactions")
+  recurring_rules                                                        recurring_rules?        @relation(fields: [recurring_rule_id], references: [id], onUpdate: NoAction)
+  credit_card_statements                                                 credit_card_statements? @relation(fields: [statement_id], references: [id], onUpdate: NoAction)
+  users                                                                  User                    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transfer_links_transfer_links_destination_transaction_idTotransactions transfer_links?         @relation("transfer_links_destination_transaction_idTotransactions")
+  transfer_links_transfer_links_source_transaction_idTotransactions      transfer_links?         @relation("transfer_links_source_transaction_idTotransactions")
+
+  @@unique([account_id, external_ref], map: "uq_transactions_account_external_ref", where: raw("(external_ref IS NOT NULL)"))
+  @@index([group_key], map: "idx_transactions_group_key")
+  @@index([recurring_rule_id], map: "idx_transactions_recurring_rule")
+  @@index([statement_id], map: "idx_transactions_statement")
+  @@index([user_id, account_id, transaction_date], map: "idx_transactions_user_account_date")
+  @@index([user_id, category_id, transaction_date], map: "idx_transactions_user_category_date")
+  @@index([user_id, type, status, transaction_date], map: "idx_transactions_user_type_status_date")
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model transfer_links {
+  id                                                                           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                                                                      String             @db.Uuid
+  source_transaction_id                                                        String             @unique @db.Uuid
+  destination_transaction_id                                                   String             @unique @db.Uuid
+  source_account_id                                                            String             @db.Uuid
+  destination_account_id                                                       String             @db.Uuid
+  amount_minor                                                                 BigInt
+  fee_amount_minor                                                             BigInt             @default(0)
+  transfer_date                                                                DateTime           @db.Date
+  notes                                                                        String?
+  created_at                                                                   DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at                                                                   DateTime           @default(now()) @db.Timestamptz(6)
+  financial_accounts_transfer_links_destination_account_idTofinancial_accounts financial_accounts @relation("transfer_links_destination_account_idTofinancial_accounts", fields: [destination_account_id], references: [id], onUpdate: NoAction)
+  transactions_transfer_links_destination_transaction_idTotransactions         transactions       @relation("transfer_links_destination_transaction_idTotransactions", fields: [destination_transaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  financial_accounts_transfer_links_source_account_idTofinancial_accounts      financial_accounts @relation("transfer_links_source_account_idTofinancial_accounts", fields: [source_account_id], references: [id], onUpdate: NoAction)
+  transactions_transfer_links_source_transaction_idTotransactions              transactions       @relation("transfer_links_source_transaction_idTotransactions", fields: [source_transaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                                                                        User               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, transfer_date], map: "idx_transfer_links_user_date")
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_preferences {
+  id                                                                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                                                             String              @unique @db.Uuid
+  start_of_month_day                                                  Int                 @default(1)
+  week_starts_on                                                      Int                 @default(1)
+  date_format                                                         String?
+  theme                                                               String?
+  compact_numbers                                                     Boolean             @default(false)
+  show_cents                                                          Boolean             @default(true)
+  default_account_id                                                  String?             @db.Uuid
+  default_income_category_id                                          String?             @db.Uuid
+  default_expense_category_id                                         String?             @db.Uuid
+  onboarding_completed                                                Boolean             @default(false)
+  metadata                                                            Json                @default("{}")
+  created_at                                                          DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at                                                          DateTime            @default(now()) @db.Timestamptz(6)
+  financial_accounts                                                  financial_accounts? @relation(fields: [default_account_id], references: [id], onUpdate: NoAction, map: "fk_user_preferences_default_account")
+  categories_user_preferences_default_expense_category_idTocategories categories?         @relation("user_preferences_default_expense_category_idTocategories", fields: [default_expense_category_id], references: [id], onUpdate: NoAction, map: "fk_user_preferences_default_expense_category")
+  categories_user_preferences_default_income_category_idTocategories  categories?         @relation("user_preferences_default_income_category_idTocategories", fields: [default_income_category_id], references: [id], onUpdate: NoAction, map: "fk_user_preferences_default_income_category")
+  users                                                               User                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("app")
+}
+
+enum user_status {
+  active
+  invited
+  suspended
+
+  @@schema("app")
+}
+
+enum budget_status {
+  active
+  archived
+
+  @@schema("app")
+}
+
+enum account_kind {
+  checking
+  savings
+  credit_card
+  cash
+  investment
+  loan
+  digital_wallet
+  prepaid_card
+  other
+
+  @@schema("app")
+}
+
+enum account_ownership_type {
+  personal
+  joint
+  business
+
+  @@schema("app")
+}
+
+enum account_status {
+  active
+  archived
+  closed
+
+  @@schema("app")
+}
+
+enum asset_type {
+  cash
+  stock
+  etf
+  mutual_fund
+  bond
+  crypto
+  real_estate
+  vehicle
+  private_equity
+  retirement_account
+  other
+
+  @@schema("app")
+}
+
+enum budget_assignment_event_type {
+  assign
+  move
+  auto_assign
+  reset
+  target_fund
+  rollback
+
+  @@schema("app")
+}
+
+enum budget_period {
+  weekly
+  monthly
+  quarterly
+  yearly
+  custom
+
+  @@schema("app")
+}
+
+enum category_kind {
+  income
+  expense
+  transfer
+  system
+
+  @@schema("app")
+}
+
+enum category_target_status {
+  on_track
+  underfunded
+  funded
+  overfunded
+  snoozed
+  none
+
+  @@schema("app")
+}
+
+enum category_target_type {
+  monthly
+  by_date
+  maintain_balance
+  weekly
+  custom
+
+  @@schema("app")
+}
+
+enum connection_status {
+  active
+  needs_reauth
+  error
+  disconnected
+
+  @@schema("app")
+}
+
+enum goal_contribution_source {
+  manual
+  automatic
+  transaction_match
+
+  @@schema("app")
+}
+
+enum goal_status {
+  active
+  paused
+  completed
+  cancelled
+
+  @@schema("app")
+}
+
+enum goal_type {
+  emergency_fund
+  vacation
+  vehicle
+  home
+  retirement
+  education
+  custom
+
+  @@schema("app")
+}
+
+enum liability_type {
+  credit_card
+  personal_loan
+  mortgage
+  vehicle_loan
+  student_loan
+  line_of_credit
+  other
+
+  @@schema("app")
+}
+
+enum recurrence_frequency {
+  daily
+  weekly
+  monthly
+  quarterly
+  yearly
+  custom
+
+  @@schema("app")
+}
+
+enum recurring_rule_status {
+  active
+  paused
+  ended
+  cancelled
+
+  @@schema("app")
+}
+
+enum session_status {
+  active
+  revoked
+  expired
+
+  @@schema("app")
+}
+
+enum snapshot_source {
+  manual
+  imported
+  system
+
+  @@schema("app")
+}
+
+enum sync_provider {
+  manual
+  plaid
+  belvo
+  pluggy
+  open_finance_br
+  other
+
+  @@schema("app")
+}
+
+enum transaction_source {
+  manual
+  imported
+  synced
+  system_generated
+
+  @@schema("app")
+}
+
+enum transaction_status {
+  pending
+  posted
+  scheduled
+  voided
+
+  @@schema("app")
+}
+
+enum transaction_type {
+  income
+  expense
+  transfer
+  adjustment
+  bill_payment
+  refund
+
+  @@schema("app")
+}

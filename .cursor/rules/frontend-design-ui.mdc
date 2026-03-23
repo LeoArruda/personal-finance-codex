@@ -1,0 +1,19 @@
+---
+description: Use project frontend-design skill for UI, pages, dashboards, and visual work
+globs: "**/*.vue"
+alwaysApply: false
+---
+
+# Frontend UI & design
+
+When **designing or building** user-facing UI (new pages, layouts, dashboards, marketing surfaces, or any work where **visual/aesthetic choices** matter—not only logic):
+
+1. **Read** the project skill (full instructions): `.cursor/skills/frontend-design/SKILL.md`
+2. **Follow** that skill for typography, color, motion, layout, and avoiding generic “AI default” aesthetics.
+3. **Scope**: This rule is tied to `**/*.vue` (Vue SFCs). If UI work lives in other files (e.g. `*.tsx`, `*.html`, global CSS), still **read the same skill** when the task is clearly UI/design-focused.
+
+**Do not** treat backend-only changes as a trigger unless the user explicitly asks for UI.
+
+### Reference
+
+**Path (repo-relative):** `.cursor/skills/frontend-design/SKILL.md`
