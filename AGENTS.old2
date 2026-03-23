@@ -1,0 +1,549 @@
+# AGENTS.md
+
+## Purpose
+
+This file instructs AI coding agents and contributors how to work in this repository.
+
+It complements `ARCHITECTURE.md` and should be treated as the practical execution guide for implementing features, refactors, and UI work.
+
+The goal is consistency, modularity, and production-quality output.
+
+---
+
+## Core Principles
+
+- Follow the architecture in `ARCHITECTURE.md`.
+- Prefer clear feature ownership over broad shared abstractions.
+- Keep route pages thin.
+- Keep business intent explicit.
+- Prefer small focused components and composables.
+- Do not introduce new patterns when an established project pattern already exists.
+- Optimize for maintainability, readability, and predictable behavior.
+- Avoid “smart” shortcuts that blur boundaries between layers or modules.
+
+---
+
+## General Rules for AI Coding Agents
+
+When implementing or modifying code:
+
+1. Read nearby files first.
+2. Match existing naming, structure, and conventions.
+3. Make the smallest change that fully solves the problem.
+4. Keep responsibilities narrow.
+5. Do not move feature-specific code into `shared` unless it is genuinely reusable across multiple modules.
+6. Do not place server state into Pinia unless there is a strong reason.
+7. Do not add visual dependencies or heavy UI libraries for primary product surfaces.
+8. Prefer explicit business actions over generic update flows.
+9. Add types for non-trivial shapes.
+10. Leave the codebase cleaner than you found it.
+
+---
+
+## Repository Shape
+
+```text
+frontend/
+  src/
+    app/
+    modules/
+    shared/
+    pages/
+
+backend/
+  src/
+    app/
+    modules/
+    shared/
+    prisma/
+```
+
+Use this shape consistently.
+
+---
+
+## Frontend Rules
+
+### Frontend stack assumptions
+
+- Vue 3
+- TypeScript
+- Vite
+- Vue Router
+- TailwindCSS
+- Pinia
+- TanStack Query
+
+### Frontend directory intent
+
+#### `frontend/src/app`
+
+Use for application-wide setup only.
+
+Examples:
+- router
+- query client
+- pinia setup
+- layouts
+- bootstrapping
+- global styles
+- design tokens
+
+Do not place feature-specific components or feature logic here.
+
+#### `frontend/src/pages`
+
+Pages are route composition only.
+
+Pages may:
+- read route params
+- call feature composables
+- wire layout regions
+- compose feature components
+
+Pages must not:
+- own complex UI logic
+- own data formatting helpers
+- own feature business rules
+- become giant screen-specific god components
+
+#### `frontend/src/modules`
+
+This is the default place for feature code.
+
+A feature module may include:
+- components
+- composables
+- services
+- stores
+- types
+- utils
+- selectors
+- validators
+- subareas like `sidebar/` or `inspector/`
+
+Keep code close to the feature that uses it.
+
+#### `frontend/src/shared`
+
+Only generic and broadly reusable code belongs here.
+
+Examples:
+- base UI primitives
+- generic helpers
+- shared formatting utilities
+- generic composables
+- common types
+
+Do not move code here just because two files happen to use it once.
+
+---
+
+## Frontend State Rules
+
+### TanStack Query
+
+Use TanStack Query for server state.
+
+Examples:
+- fetched budget month payload
+- account lists
+- category data
+- reports
+- summary cards
+- projections
+- mutation lifecycle
+- query invalidation
+- optimistic updates when appropriate
+
+Do not duplicate fetched API data into Pinia by default.
+
+### Pinia
+
+Use Pinia for limited client-side app state and feature UI orchestration.
+
+Examples:
+- selected row
+- selected entity type
+- expanded groups
+- active filter
+- current inline edit target
+- sidebar collapsed state
+- popover open state
+- user preferences
+
+Pinia is not the default store for fetched server payloads.
+
+### Local component state
+
+Use local state for short-lived concerns.
+
+Examples:
+- hover state
+- temporary input buffer
+- focus state
+- one-off animation toggles
+
+---
+
+## Frontend UI Rules
+
+### Primary product surfaces
+
+Build primary product surfaces as custom UI.
+
+Examples:
+- budgeting grid
+- account register
+- projections workspace
+- comparison/report surfaces
+- contextual inspectors
+
+Use:
+- custom Vue components
+- TailwindCSS
+- app-level design tokens
+- small reusable primitives
+
+Avoid generic dashboard-looking solutions for these areas.
+
+### Headless interaction primitives
+
+Use headless or low-level primitives when interaction complexity justifies them.
+
+Examples:
+- popovers
+- tabs
+- menus
+- dialogs
+- overlays
+- keyboard navigation helpers
+
+These should support the product UI, not define its visual identity.
+
+### Styling
+
+The UI should favor:
+- dense but readable layouts
+- soft surface contrast
+- subtle borders
+- restrained shadows
+- clear spacing hierarchy
+- accessible hover and focus states
+
+Avoid unnecessary visual noise.
+
+### Design tokens
+
+Use app-level tokens for:
+- colors
+- spacing
+- radii
+- shadows
+- typography
+- semantic states
+- fixed layout widths where applicable
+
+Do not hardcode one-off values repeatedly when a token should exist.
+
+---
+
+## Frontend Component Rules
+
+- Keep components focused.
+- Prefer composition over giant all-in-one components.
+- Lift state only when it is truly shared.
+- Use typed props and emits for non-trivial components.
+- Keep presentational components mostly stateless where practical.
+- Keep formatting logic out of templates when it grows beyond trivial display logic.
+
+### Recommended component split
+
+Prefer this pattern:
+
+- page composes module widgets
+- module widgets compose smaller feature components
+- shared primitives support both
+
+---
+
+## Frontend Composable Rules
+
+Use composables for:
+- feature query wrappers
+- derived feature behavior
+- shared interaction patterns
+- input handling abstractions
+- keyboard interaction helpers
+
+Do not create composables that simply relocate a few lines of code without improving clarity.
+
+Name composables clearly, for example:
+- `useBudgetMonthQuery`
+- `useBudgetMutations`
+- `useCurrencyInput`
+- `useBudgetSelection`
+
+---
+
+## Budgets Module Guidance
+
+The budgets module is a model example of how frontend features should be structured.
+
+Recommended shape:
+
+```text
+frontend/src/modules/budgets/
+  components/
+  inspector/
+  sidebar/
+  composables/
+  services/
+  stores/
+  types/
+  utils/
+```
+
+### Budgets page responsibilities
+
+The budgets page should:
+- read the month route param
+- render the app shell
+- compose sidebar, header, toolbar, table, and inspector
+- remain thin
+
+### Budgets UI state in Pinia
+
+Good examples:
+- selected category or group
+- expanded group IDs
+- active chip filter
+- current editing category ID
+- assign popover tab/open state
+
+### Budgets server state in TanStack Query
+
+Good examples:
+- month payload
+- category values
+- summary cards
+- recommendations
+- mutation wrappers for assigning money and auto-assign actions
+
+### Budgets UI implementation guidance
+
+The budgets workspace should feel like a desktop productivity surface.
+
+Prioritize:
+- row density and alignment
+- inline editing
+- contextual inspector behavior
+- subtle visual feedback
+- keyboard-friendly interactions
+- optimistic UI where appropriate
+
+Do not implement the budget table as a generic data-table if it harms fidelity or interaction quality.
+
+---
+
+## Backend Rules
+
+### Backend stack assumptions
+
+- Node.js
+- Fastify
+- TypeScript
+- Prisma
+- PostgreSQL
+
+### Backend module structure
+
+Each backend module should prefer these layers:
+
+- domain
+- application
+- infrastructure
+- presentation
+
+### Domain
+
+Contains:
+- entities
+- value objects when helpful
+- domain rules
+- invariants
+- domain-specific validation
+- calculations
+- domain errors
+
+Must not contain:
+- Prisma code
+- HTTP concerns
+- framework transport logic
+
+### Application
+
+Contains:
+- use cases
+- workflow orchestration
+- transaction coordination
+- business process sequencing
+
+Prefer explicit use cases such as:
+- `assignMoneyToCategory`
+- `moveMoneyBetweenCategories`
+- `recordTransaction`
+- `applyAutoAssignStrategy`
+
+### Infrastructure
+
+Contains:
+- Prisma repositories
+- persistence mappers
+- SQL details
+- external integrations
+
+Do not accumulate business logic here.
+
+### Presentation
+
+Contains:
+- Fastify routes
+- schemas
+- handlers/controllers
+- request/response mapping
+- auth hooks
+
+Keep controllers thin.
+
+---
+
+## Validation Rules
+
+### Backend
+
+Validate all untrusted input at boundaries.
+
+Use validation for:
+- request bodies
+- params
+- query strings
+- environment config
+- external payloads when needed
+
+### Frontend
+
+Use validation to improve UX:
+- form correctness
+- inline feedback
+- guardrails
+- early error prevention
+
+Do not rely on frontend validation as the source of truth for security or integrity.
+
+---
+
+## Mutation and Financial Integrity Rules
+
+- All financial mutations must be explicit.
+- Prefer intent-driven actions over vague patch/update handlers.
+- Do not hide balance-affecting behavior in unrelated helpers.
+- Use transactions when multi-step financial workflows must be atomic.
+- Keep state-changing operations auditable and understandable.
+
+---
+
+## Naming Guidance
+
+Prefer names that describe business intent and UI purpose.
+
+Good:
+- `BudgetMonthPage.vue`
+- `BudgetCategoryRow.vue`
+- `useBudgetMonthQuery.ts`
+- `applyAutoAssign.ts`
+
+Avoid vague names like:
+- `data.ts`
+- `helpers.ts`
+- `manager.ts`
+- `misc.ts`
+- `commonUtils.ts`
+
+---
+
+## Testing Guidance
+
+Add or update tests when behavior changes meaningfully.
+
+Frontend:
+- Vitest
+- Vue Test Utils
+- Playwright for end-to-end critical flows
+
+Backend:
+- Vitest
+- Supertest
+- focused tests for use cases and domain logic
+
+Prioritize testing:
+- business-critical calculations
+- financial mutations
+- query/mutation wrappers with important behavior
+- interaction-heavy UI like inline editing and popovers
+
+---
+
+## Refactoring Guidance
+
+When refactoring:
+- preserve module boundaries
+- avoid unrelated rewrites
+- extract only when the destination is clearly better
+- prefer incremental cleanup over broad speculative architecture changes
+
+If duplication exists in only one feature, duplication may be acceptable until a real shared pattern is clear.
+
+---
+
+## What to Avoid
+
+- giant page components
+- dumping feature code into `shared`
+- putting fetched API payloads in Pinia by default
+- using generic admin/dashboard widgets for core product surfaces
+- hidden business logic inside infrastructure or UI helpers
+- vague function names
+- over-abstracting too early
+- mixing transport, persistence, and domain rules together
+
+---
+
+## Preferred Delivery Style for AI Agents
+
+When producing code:
+- keep files focused
+- use explicit TypeScript types
+- include only necessary comments
+- avoid placeholder abstractions unless they are immediately useful
+- preserve readability
+- favor stable structure over cleverness
+
+When unsure:
+- choose the more explicit and maintainable solution
+- follow nearby established patterns
+- keep the implementation easy for a human teammate to extend
+
+---
+
+## Relationship to ARCHITECTURE.md
+
+`ARCHITECTURE.md` defines the target architecture.
+
+`AGENTS.md` defines how contributors and AI coding agents should act inside that architecture.
+
+If there is a conflict, prefer:
+1. correctness
+2. maintainability
+3. explicit module boundaries
+4. the structure defined in `ARCHITECTURE.md`

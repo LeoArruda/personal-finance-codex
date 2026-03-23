@@ -4,41 +4,9 @@
 
 This file defines the target architecture of the application.
 
-It guides contributors and AI coding agents toward a consistent system shape, especially when implementing new modules, screens, workflows, and cross-cutting patterns.
+It is intended to guide contributors and AI coding tools toward a consistent system shape, especially when implementing new modules, screens, and cross-cutting patterns.
 
 This project is a modular monolith with a feature-oriented frontend and a layered backend.
-
-The system is also a financial application. That means correctness, auditability, ownership boundaries, and explicit business behavior are architectural concerns, not just implementation details.
-
----
-
-## Companion Documents
-
-Use this file together with:
-
-- `AGENTS.md` → practical implementation behavior and coding guidance
-- `APPLICATION_INSTRUCTIONS.md` → application behavior, business workflows, invariants
-- `DATABASE_TASKING_GUIDE.md` → database change process and migration expectations
-- `DOMAIN_MODEL.md` → domain concepts, terminology, and business meaning
-
-`ARCHITECTURE.md` defines the system shape.
-`AGENTS.md` defines how contributors and AI coding agents should work inside that shape.
-
----
-
-## Architectural Priorities
-
-The architecture should optimize for:
-
-- correctness in financial behavior
-- explicit and auditable business workflows
-- strong module boundaries
-- maintainability over cleverness
-- predictable state flow
-- clean separation between business logic, transport, and persistence
-- secure multi-tenant ownership boundaries
-- testable domain and application behavior
-- high-fidelity productivity UI where the product requires it
 
 ---
 
@@ -54,7 +22,7 @@ The architecture should optimize for:
 - TanStack Query for server state, caching, and mutation lifecycle
 - TailwindCSS
 - Custom UI components for primary product surfaces
-- Headless interaction primitives where needed for popovers, menus, tabs, dialogs, overlays, and keyboard-heavy interactions
+- Headless interaction primitives where needed for popovers, menus, tabs, dialogs, and overlays
 
 ### Backend
 
@@ -63,10 +31,6 @@ The architecture should optimize for:
 - TypeScript
 - Prisma
 - PostgreSQL
-
-### Validation
-
-- Zod or Valibot
 
 ### Testing
 
@@ -85,11 +49,21 @@ The system follows a modular monolith architecture.
 
 This means:
 
-- one deployable frontend and one deployable backend runtime
-- clear internal module boundaries
+- one deployable application per frontend and backend runtime
+- clear module boundaries inside the codebase
 - business capabilities grouped by domain
 - explicit orchestration through use cases rather than hidden framework magic
-- no casual mixing of domain rules, persistence details, and transport concerns
+
+### Backend style
+
+The backend follows a layered modular monolith.
+
+Each module should be organized into:
+
+- domain
+- application
+- infrastructure
+- presentation
 
 ### Frontend style
 
@@ -97,20 +71,7 @@ The frontend follows a feature-based modular structure.
 
 The frontend should be organized around product capabilities, not technical layers alone.
 
-Pages remain thin and compose feature modules. Feature modules own their components, composables, queries, mutations, feature-local types, selectors, and formatting logic. Shared folders contain only generic building blocks that are broadly reusable.
-
-### Backend style
-
-The backend follows a layered modular monolith.
-
-Each backend module should prefer these layers:
-
-- domain
-- application
-- infrastructure
-- presentation
-
-This separation is not cosmetic. It exists to keep business logic explicit, testable, and independent from transport or persistence implementation details.
+Pages remain thin and compose feature modules. Feature modules own their components, composables, queries, mutations, feature-local types, and selectors. Shared folders contain only generic building blocks that are broadly reusable.
 
 ---
 
@@ -139,8 +100,6 @@ frontend/
     pages/
 ```
 
-Use this structure consistently.
-
 ---
 
 ## Frontend Architecture
@@ -155,7 +114,6 @@ The frontend should optimize for:
 - testable components and composables
 - minimal coupling between screens
 - design consistency through shared tokens and primitives
-- high interaction fidelity for core financial workflows
 
 ### Frontend directory responsibilities
 
@@ -181,8 +139,6 @@ Examples:
 - `app/styles/tokens.css`
 - `app/styles/main.css`
 
-Do not place feature-specific components or feature business logic here.
-
 #### `frontend/src/pages`
 
 Route-level composition only.
@@ -191,7 +147,7 @@ Pages should:
 
 - read route params
 - invoke feature composables where appropriate
-- wire app layouts to feature widgets
+- compose feature widgets into the correct layout
 - remain intentionally thin
 
 Pages must not become the place where large UI logic, mutation logic, formatting logic, or reusable business behavior lives.
@@ -212,7 +168,6 @@ A module may contain:
 - selectors
 - formatters
 - validators
-- subareas such as `sidebar/` or `inspector/`
 
 Each feature should prefer internal cohesion over premature reuse.
 
@@ -228,7 +183,7 @@ Contains:
 - formatting helpers used by multiple modules
 - shared types
 
-Shared must not become a dumping ground for feature-specific code that only appears reusable in the moment.
+Shared must not become a dumping ground for half-specific feature code.
 
 ---
 
@@ -284,8 +239,6 @@ Examples of TanStack Query state:
 - summary cards
 - projections results
 - reports payloads
-- recommendations
-- server-derived dashboard data
 
 ### Pinia
 
@@ -308,7 +261,6 @@ Examples of acceptable Pinia state:
 - current inline edit target
 - popover open state
 - sidebar collapsed state
-- current view mode
 
 Pinia must not become the default place for fetched API data.
 
@@ -321,8 +273,7 @@ Examples:
 - hover details
 - local form focus state
 - temporary uncommitted input buffer
-- animation toggles
-- transient display-only state
+- transition and animation toggles
 
 ---
 
@@ -339,7 +290,6 @@ Examples of primary product surfaces:
 - projections workspace
 - reports comparison surface
 - contextual right inspector panels
-- transaction review surfaces
 
 These surfaces should be built from:
 
@@ -391,7 +341,6 @@ The application should favor:
 - restrained shadows
 - strong hierarchy through spacing and typography, not decoration
 - accessible focus and hover states
-- visual consistency across modules
 
 Avoid introducing inconsistent visual systems across modules.
 
@@ -399,7 +348,7 @@ Avoid introducing inconsistent visual systems across modules.
 
 ## Frontend Example: Budgets Module
 
-The budgets experience is a model example of how modules should be structured.
+The budgets experience is a good example of how modules should be structured.
 
 Recommended shape:
 
@@ -446,7 +395,6 @@ Examples of budget UI state for Pinia:
 - active filter
 - current editing category ID
 - assign popover tab
-- open inspector mode when client-driven
 
 Examples of budget server state for TanStack Query:
 
@@ -455,22 +403,6 @@ Examples of budget server state for TanStack Query:
 - summary values
 - auto-assign recommendations
 - update assigned amount mutations
-- rollover previews when server-derived
-
-### Budgets interaction expectations
-
-The budgets workspace should feel like a desktop productivity surface.
-
-Prioritize:
-
-- row density and alignment
-- inline editing
-- contextual inspector behavior
-- subtle visual feedback
-- keyboard-friendly interactions
-- optimistic UI where appropriate
-
-Do not implement the budget table as a generic data-table if doing so harms fidelity or interaction quality.
 
 ---
 
@@ -485,8 +417,6 @@ The backend should optimize for:
 - strong module boundaries
 - clean separation between business logic and transport or persistence concerns
 - testability of use cases and domain rules
-- secure multi-tenant ownership enforcement
-- transactional integrity for financial workflows
 
 ### Backend layer responsibilities
 
@@ -510,8 +440,6 @@ Must not contain:
 - transport serialization
 - persistence implementation details
 
-The domain layer should remain pure and framework-agnostic.
-
 #### Application
 
 Contains use cases and workflow orchestration.
@@ -533,9 +461,6 @@ Examples:
 - open budget month
 - perform month rollover
 - generate recurring entries
-- evaluate target status
-
-Application is the home of explicit business intent.
 
 #### Infrastructure
 
@@ -580,7 +505,7 @@ At minimum:
 - portfolio
 - reports
 
-Recommended addition where budgeting behavior is substantial:
+Recommended addition:
 
 - budgeting
 
@@ -596,92 +521,6 @@ This includes:
 - month rollover behavior
 
 The goal is to avoid mixing budgeting behavior into generic transaction code.
-
----
-
-## Financial and Data Architecture Rules
-
-### Multi-tenancy by user
-
-Assume the system is multi-tenant.
-
-- Every protected row must include `user_id` or equivalent ownership information.
-- No cross-user access is allowed.
-- Ownership boundaries must be enforced in the backend.
-
-### Row-Level Security
-
-- RLS should be enabled on all user-owned tables.
-- Normal flows must not bypass RLS.
-- Architectural changes must preserve the RLS model and ownership guarantees.
-
-### Money handling
-
-- Money must be stored as integer minor units.
-- Use `BIGINT` where appropriate.
-- Never use floats for financial storage or calculation.
-
-### Financial mutations
-
-All financial state changes must be explicit and traceable.
-
-Do not hide balance-changing or budget-changing behavior inside unrelated helpers.
-
-Prefer intent-driven APIs and use cases.
-
-Examples:
-
-- `assignMoneyToCategory`
-- `moveMoneyBetweenCategories`
-- `recordTransaction`
-- `applyAutoAssignStrategy`
-
-### Transfers
-
-Transfers must be explicit.
-
-- Always create paired transactions or equivalent linked entries when the model requires it.
-- Always link the two sides.
-- Transfers move money location, not spending intent.
-
-### Database transactions
-
-Use database transactions for workflows that must succeed atomically.
-
-Examples:
-
-- creating both sides of a transfer
-- applying a budget assignment event and updating materialized month state
-- paying a bill and updating related records
-- performing month rollover steps that must remain consistent
-
----
-
-## Budgeting Domain Architecture
-
-This system is not just a ledger.
-
-It must support budgeting as a first-class domain.
-
-Important concepts include:
-
-- category groups
-- categories
-- monthly budgeting
-- targets
-- assignment events
-- ready-to-assign behavior
-- month-based category availability
-- month rollover behavior
-
-Critical conceptual rules:
-
-- budgeting is not the same as transaction tracking
-- ready-to-assign is central
-- category availability is month-based
-- transfers move money location, not budget intent
-
-Budgeting behavior should not be casually scattered across unrelated transaction logic.
 
 ---
 
@@ -701,7 +540,7 @@ Use schema validation for:
 
 ### Frontend validation
 
-Frontend validation should support user experience, but it is not the source of truth for security.
+Frontend validation should support user experience, but must not be treated as the source of truth for security.
 
 Use frontend validation for:
 
@@ -710,126 +549,154 @@ Use frontend validation for:
 - client-side guardrails
 - early error prevention
 
-Never rely on frontend checks alone for ownership or financial integrity.
+---
+
+## Data and Mutation Integrity
+
+### Financial integrity
+
+All financial state changes must be explicit and traceable.
+
+Do not hide balance-changing or budget-changing behavior inside unrelated helpers.
+
+### Mutation design
+
+Prefer mutations that reflect business intent.
+
+Examples:
+
+- `assignMoneyToCategory`
+- `moveMoneyBetweenCategories`
+- `recordTransaction`
+- `applyAutoAssignStrategy`
+
+Prefer intent-driven APIs and use cases over vague generic update endpoints where practical.
 
 ---
 
-## Error and Mapping Boundaries
+## Shared Backend Conventions
 
-### Domain errors
+### Repositories
 
-Domain-specific failures should be represented explicitly.
+Repositories should return application-safe DTOs or domain-friendly shapes.
 
-Prefer clear domain errors over vague generic exceptions where business meaning matters.
+Do not broadly leak raw Prisma models into application or presentation layers.
 
 ### Mapping
 
 Database mapping belongs in infrastructure.
 
-Transport mapping belongs in presentation.
+### Transactions
 
-Do not broadly leak raw Prisma models into the application or presentation layers unless there is a deliberate reason.
+Use database transactions for workflows that must succeed atomically.
 
----
+Examples:
 
-## Testing Architecture
-
-### Testing goals
-
-Testing should protect:
-
-- ownership boundaries
-- financial correctness
-- domain invariants
-- critical user workflows
-- mutation behavior
-- UI interactions that are central to the product experience
-
-### What must be tested
-
-High-priority areas include:
-
-- ownership and RLS behavior
-- budgeting calculations
-- transfers
-- recurring logic
-- month rollover
-- financial mutations
-- query and mutation wrappers with meaningful behavior
-- interaction-heavy UI such as inline editing and popovers
-
-### Test philosophy
-
-- test behavior, not implementation trivia
-- prefer integration tests for financial flows
-- test domain rules close to the domain
-- test critical workflows where regressions would be expensive
-
-### Critical invariants to protect
-
-- users cannot access other users’ data
-- money is conserved in transfers
-- category movements do not change total budget
-- ready-to-assign behaves correctly
-- month rollover preserves intended state transitions
+- creating both sides of a transfer
+- applying a budget assignment event and updating materialized month state
+- paying a bill and updating related records
 
 ---
 
-## Naming and Structural Guidance
+## Shared Frontend Conventions
 
-Prefer names that describe business intent and UI purpose.
+### Components
 
-Good examples:
+Components should have narrow responsibilities.
 
-- `BudgetMonthPage.vue`
-- `BudgetCategoryRow.vue`
-- `useBudgetMonthQuery.ts`
-- `assignMoneyToCategory.ts`
+Prefer composing several focused components over creating oversized all-purpose widgets.
 
-Avoid vague names such as:
+### Composables
 
-- `helpers.ts`
-- `manager.ts`
-- `misc.ts`
-- `commonUtils.ts`
+Use composables for:
 
-Favor module-local naming and placement over vague global utility patterns.
+- feature query wrappers
+- derived client-side feature state
+- reusable interaction logic
+- formatting and state helpers tightly coupled to a feature
 
----
+Avoid creating generic composables too early.
 
-## Refactoring Guidance
+### Services
 
-When refactoring:
+Feature services should encapsulate API calls and transport concerns.
 
-- preserve module boundaries
-- avoid unrelated rewrites
-- extract only when the destination is clearly better
-- prefer incremental cleanup over speculative redesign
-- do not create shared abstractions prematurely
+They should not contain view rendering concerns.
 
-Duplication within one feature may be acceptable until a genuine shared pattern becomes clear.
+### Utilities and selectors
+
+Put feature-specific selectors and formatters inside the feature module.
+
+Move something to shared only after it is genuinely shared.
 
 ---
 
-## Definition of Architectural Success
+## Testing Guidance
 
-A change is architecturally successful when:
+### Frontend
 
-- behavior is correct
-- module boundaries remain clear
-- ownership and security rules are preserved
-- financial invariants remain intact
-- UI state and server state remain well separated
-- business behavior is explicit
-- tests protect the important parts
-- future contributors can extend the change without guesswork
+Prefer tests for:
+
+- critical composables
+- state transitions in feature UI stores
+- important interactive components
+- route-level composition where helpful
+
+Examples:
+
+- inline amount editing behavior
+- row selection logic
+- expand and collapse behavior
+- popover open and close behavior
+
+### Backend
+
+Prefer tests for:
+
+- domain rules
+- use cases
+- repository integrations where needed
+- HTTP endpoints for contract confidence
 
 ---
 
-## Relationship to AGENTS.md
+## Cross-Cutting Requirements
 
-`ARCHITECTURE.md` defines the target system shape and non-negotiable architectural boundaries.
+### Security
 
-`AGENTS.md` defines the implementation behavior expected from contributors and AI coding agents working inside this architecture.
+All request input is untrusted.
 
-If the two documents drift, they should be reconciled so that implementation guidance and architecture remain aligned.
+The system must be designed with:
+
+- strong validation
+- least privilege
+- safe defaults
+- ownership enforcement
+- RLS-aware persistence where applicable
+
+### Observability
+
+Prefer code paths that are easy to inspect, test, and reason about.
+
+Avoid hidden side effects.
+
+### Documentation
+
+Any new major module, pattern, or cross-cutting decision should be documented.
+
+Keep architecture guidance aligned with the implemented codebase.
+
+---
+
+## Decision Guidelines
+
+When uncertain:
+
+- prefer explicit over implicit
+- prefer feature ownership over vague shared abstractions
+- prefer small focused components over large generic widgets
+- prefer use cases over fat controllers
+- prefer TanStack Query for server state
+- prefer Pinia only for limited UI and app state
+- prefer additive change over speculative redesign
+- prefer auditability over cleverness

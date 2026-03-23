@@ -1,0 +1,42 @@
+:root {
+  color-scheme: light;
+
+  --pfm-font-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  --pfm-font-display: "Iowan Old Style", "Palatino Linotype", serif;
+
+  --pfm-bg-app: #f6f2ea;
+  --pfm-bg-canvas: #fcfaf6;
+  --pfm-bg-panel: #fffdf9;
+  --pfm-bg-panel-muted: #f4efe7;
+  --pfm-bg-sidebar: #24255f;
+  --pfm-bg-sidebar-accent: #35399a;
+  --pfm-bg-sidebar-soft: rgba(255, 255, 255, 0.08);
+  --pfm-bg-ready: #c4f26b;
+  --pfm-bg-ready-action: #5e9316;
+  --pfm-bg-selection: #dfe1ff;
+
+  --pfm-text-strong: #26211c;
+  --pfm-text-default: #4e463d;
+  --pfm-text-muted: #857a6f;
+  --pfm-text-inverse: #f8f7ff;
+  --pfm-text-sidebar-muted: rgba(248, 247, 255, 0.72);
+  --pfm-text-accent: #4a55ea;
+  --pfm-text-positive: #3f6b0c;
+
+  --pfm-border-subtle: #e5ddd0;
+  --pfm-border-strong: #d8ceb9;
+  --pfm-border-sidebar: rgba(255, 255, 255, 0.1);
+
+  --pfm-shadow-shell: 0 18px 36px rgba(31, 28, 23, 0.08);
+  --pfm-shadow-card: 0 8px 20px rgba(31, 28, 23, 0.06);
+  --pfm-shadow-ready: 0 14px 32px rgba(148, 201, 58, 0.24);
+
+  --pfm-radius-sm: 10px;
+  --pfm-radius-md: 14px;
+  --pfm-radius-lg: 20px;
+  --pfm-radius-xl: 28px;
+
+  --pfm-sidebar-width: 264px;
+  --pfm-inspector-width: 390px;
+  --pfm-content-max-width: 1200px;
+}
