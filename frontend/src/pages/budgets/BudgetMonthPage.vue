@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import AppShellLayout from "../../app/layouts/AppShellLayout.vue";
+import BudgetHeader from "../../modules/budgets/components/BudgetHeader.vue";
+import BudgetToolbar, {
+  type BudgetToolbarAction
+} from "../../modules/budgets/components/BudgetToolbar.vue";
+import type { BudgetFilterChip } from "../../modules/budgets/components/BudgetFilterChips.vue";
 import BudgetSidebar, {
   type BudgetSidebarAccountSection
 } from "../../modules/budgets/sidebar/BudgetSidebar.vue";
@@ -50,6 +55,21 @@ const sidebarGroups: BudgetSidebarAccountSection[] = [
     balance: "$23,000.00",
     accounts: [{ id: "future-investments", name: "Future Investments", balance: "$23,000.00" }]
   }
+];
+
+const budgetFilterChips: BudgetFilterChip[] = [
+  { id: "all", label: "All" },
+  { id: "underfunded", label: "Underfunded" },
+  { id: "overfunded", label: "Overfunded" },
+  { id: "money_available", label: "Money Available" },
+  { id: "snoozed", label: "Snoozed" }
+];
+
+const budgetToolbarActions: BudgetToolbarAction[] = [
+  { id: "create-group", label: "⊕ Category Group" },
+  { id: "undo", label: "↺ Undo", subdued: true },
+  { id: "redo", label: "↻ Redo", subdued: true },
+  { id: "recent-moves", label: "◔ Recent Moves" }
 ];
 
 const budgetGroups: BudgetCategoryGroup[] = [
@@ -143,59 +163,15 @@ const autoAssignRows = [
 
     <template #main>
       <div class="budget-main">
-        <header
-          style="display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 30px 28px 18px"
-        >
-          <div style="display: flex; align-items: center; gap: 18px">
-            <button
-              type="button"
-              style="display: grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; border: 2px solid rgba(74, 85, 234, 0.7); background: white; color: var(--pfm-text-accent); font-size: 1.2rem"
-            >
-              ‹
-            </button>
-            <div>
-              <div style="display: flex; align-items: center; gap: 8px">
-                <h1
-                  style="margin: 0; color: var(--pfm-text-strong); font-family: var(--pfm-font-sans); font-size: 3rem; line-height: 1; letter-spacing: -0.05em"
-                >
-                  Mar 2026
-                </h1>
-                <span style="color: var(--pfm-text-accent); font-size: 1.1rem">▼</span>
-              </div>
-              <div style="margin-top: 4px; color: var(--pfm-text-muted); font-size: 1.15rem">
-                Enter a note...
-              </div>
-            </div>
-            <button
-              type="button"
-              style="display: grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; border: 2px solid rgba(74, 85, 234, 0.7); background: white; color: var(--pfm-text-accent); font-size: 1.2rem"
-            >
-              ›
-            </button>
-          </div>
+        <BudgetHeader
+          month-label="Mar 2026"
+          note-text="Enter a note..."
+          ready-to-assign-label="Ready to Assign"
+          ready-to-assign-amount="$7,720.00"
+          member-button-label="+ Add Member"
+        />
 
-          <div class="budget-ready-box">
-            <div>
-              <div style="color: #111; font-size: 1rem; font-weight: 800; line-height: 1.1">Ready to Assign</div>
-              <div
-                style="margin-top: 4px; color: #111; font-size: 3rem; font-weight: 800; line-height: 1; letter-spacing: -0.05em"
-              >
-                $7,720.00
-              </div>
-            </div>
-            <button type="button" class="budget-ready-box__action">Assign ▼</button>
-          </div>
-        </header>
-
-        <section style="padding: 0 28px 18px">
-          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
-            <span class="budget-pill budget-pill--active">All</span>
-            <span class="budget-pill">Underfunded</span>
-            <span class="budget-pill">Overfunded</span>
-            <span class="budget-pill">Money Available</span>
-            <span class="budget-pill">Snoozed</span>
-          </div>
-        </section>
+        <BudgetToolbar :chips="budgetFilterChips" :actions="budgetToolbarActions" />
 
         <section style="padding: 0 18px 24px">
           <div class="budget-card" style="overflow: hidden; border-radius: 22px">
