@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import AppShellLayout from "../../app/layouts/AppShellLayout.vue";
-
-type SidebarAccountGroup = {
-  title: string;
-  balance: string;
-  accounts: Array<{ name: string; balance: string }>;
-};
+import BudgetSidebar, {
+  type BudgetSidebarAccountSection
+} from "../../modules/budgets/sidebar/BudgetSidebar.vue";
+import type { SidebarNavItem } from "../../modules/budgets/sidebar/SidebarNav.vue";
 
 type BudgetCategoryGroup = {
   id: string;
@@ -24,24 +22,33 @@ type BudgetCategoryGroup = {
   }>;
 };
 
-const sidebarGroups: SidebarAccountGroup[] = [
+const sidebarNavItems: SidebarNavItem[] = [
+  { id: "plan", label: "Plan", icon: "◫", active: true },
+  { id: "reflect", label: "Reflect", icon: "▥" },
+  { id: "accounts", label: "All Accounts", icon: "⌂" }
+];
+
+const sidebarGroups: BudgetSidebarAccountSection[] = [
   {
+    id: "cash",
     title: "Cash",
     balance: "$10,500.00",
     accounts: [
-      { name: "RBC Checking", balance: "$5,000.00" },
-      { name: "RBC Savings", balance: "$5,500.00" }
+      { id: "rbc-checking", name: "RBC Checking", balance: "$5,000.00" },
+      { id: "rbc-savings", name: "RBC Savings", balance: "$5,500.00" }
     ]
   },
   {
+    id: "loans",
     title: "Loans",
     balance: "-$21,000.00",
-    accounts: [{ name: "CIBC Loan", balance: "-$21,000.00" }]
+    accounts: [{ id: "cibc-loan", name: "CIBC Loan", balance: "-$21,000.00" }]
   },
   {
+    id: "tracking",
     title: "Tracking",
     balance: "$23,000.00",
-    accounts: [{ name: "Future Investments", balance: "$23,000.00" }]
+    accounts: [{ id: "future-investments", name: "Future Investments", balance: "$23,000.00" }]
   }
 ];
 
@@ -126,74 +133,12 @@ const autoAssignRows = [
 <template>
   <AppShellLayout class="budget-page">
     <template #sidebar>
-      <div class="budget-sidebar">
-        <div style="padding: 6px 10px 18px">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
-            <div>
-              <div style="font-size: 2rem; line-height: 1">☘︎</div>
-              <div style="margin-top: 8px; font-size: 1.9rem; font-weight: 700; letter-spacing: -0.03em">
-                Leo's Plan
-              </div>
-              <div style="color: var(--pfm-text-sidebar-muted); font-size: 0.95rem">
-                spruces_honoree5@icloud.com
-              </div>
-            </div>
-            <div style="font-size: 1.3rem; color: var(--pfm-text-sidebar-muted)">▾</div>
-          </div>
-        </div>
-
-        <nav style="display: grid; gap: 8px">
-          <a class="budget-sidebar-nav-button budget-sidebar-nav-button--active" href="/">
-            <span>◫</span>
-            <span style="font-size: 1.5rem; font-weight: 600">Plan</span>
-          </a>
-          <a class="budget-sidebar-nav-button" href="/">
-            <span>▥</span>
-            <span style="font-size: 1.5rem; font-weight: 500">Reflect</span>
-          </a>
-          <a class="budget-sidebar-nav-button" href="/">
-            <span>⌂</span>
-            <span style="font-size: 1.5rem; font-weight: 500">All Accounts</span>
-          </a>
-        </nav>
-
-        <div class="budget-sidebar-section" style="display: grid; gap: 18px">
-          <section v-for="group in sidebarGroups" :key="group.title" style="display: grid; gap: 10px">
-            <div
-              style="display: flex; align-items: center; justify-content: space-between; color: var(--pfm-text-sidebar-muted); font-size: 0.9rem; letter-spacing: 0.08em; text-transform: uppercase"
-            >
-              <span>{{ group.title }}</span>
-              <span style="letter-spacing: 0">{{ group.balance }}</span>
-            </div>
-
-            <div style="display: grid; gap: 8px">
-              <div
-                v-for="account in group.accounts"
-                :key="account.name"
-                style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 8px 0 26px; color: var(--pfm-text-inverse); font-size: 1.05rem"
-              >
-                <span>{{ account.name }}</span>
-                <span style="color: var(--pfm-text-sidebar-muted)">{{ account.balance }}</span>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <div style="margin-top: auto; display: grid; gap: 10px; padding: 18px 4px 0">
-          <button
-            type="button"
-            style="border: 0; border-radius: 14px; background: rgba(255,255,255,0.14); color: var(--pfm-text-inverse); padding: 14px 18px; font-weight: 700"
-          >
-            ⊕ Add Account
-          </button>
-          <button
-            type="button"
-            style="border: 0; border-radius: 14px; background: rgba(255,255,255,0.14); color: var(--pfm-text-inverse); padding: 14px 18px; font-weight: 700"
-          >
-            ⌘ Bank Connections
-          </button>
-        </div>
-      </div>
+      <BudgetSidebar
+        workspace-name="Leo's Plan"
+        workspace-email="spruces_honoree5@icloud.com"
+        :nav-items="sidebarNavItems"
+        :account-sections="sidebarGroups"
+      />
     </template>
 
     <template #main>
