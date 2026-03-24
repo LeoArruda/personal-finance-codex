@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import AssignMenuButton from "./AssignMenuButton.vue";
+import type { BudgetMonthKey } from "../types/budget.types";
 
 defineProps<{
   label: string;
   amount: string;
+  budgetId: string;
+  monthKey: BudgetMonthKey;
 }>();
 </script>
 
@@ -16,6 +19,6 @@ defineProps<{
       </div>
     </div>
 
-    <AssignMenuButton />
+    <AssignMenuButton :budget-id="budgetId" :month-key="monthKey" />
   </div>
 </template>

@@ -95,7 +95,8 @@ export type AutoAssignStrategy =
   | "spent_last_month"
   | "average_assigned"
   | "average_spent"
-  | "reset_available";
+  | "reset_available"
+  | "reset_assigned";
 
 export interface ApplyAutoAssignInput {
   budgetId: string;

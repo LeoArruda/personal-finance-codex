@@ -3,6 +3,8 @@ import MonthNavigator from "./MonthNavigator.vue";
 import ReadyToAssignCard from "./ReadyToAssignCard.vue";
 
 defineProps<{
+  budgetId: string;
+  monthKey: string;
   monthLabel: string;
   noteText: string;
   readyToAssignLabel: string;
@@ -19,6 +21,8 @@ defineProps<{
 
     <div class="justify-self-center">
       <ReadyToAssignCard
+        :budget-id="budgetId"
+        :month-key="monthKey"
         :label="readyToAssignLabel"
         :amount="readyToAssignAmount"
       />

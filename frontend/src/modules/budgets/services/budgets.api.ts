@@ -91,7 +91,8 @@ function getAutoAssignPreset(
     spent_last_month: { label: "Spent Last Month", amountMinor: "219500" },
     average_assigned: { label: "Average Assigned", amountMinor: "225000" },
     average_spent: { label: "Average Spent", amountMinor: "214000" },
-    reset_available: { label: "Reset Available Amount", amountMinor: "0" }
+    reset_available: { label: "Reset Available Amount", amountMinor: "0" },
+    reset_assigned: { label: "Reset Assigned Amount", amountMinor: "0" }
   };
 
   const preset = presets[strategy];
